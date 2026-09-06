@@ -1,0 +1,27 @@
+@startuml despliegue_cs
+skinparam shadowing false
+skinparam defaultFontName Times New Roman
+title Despliegue - Modelo cliente-servidor (2 clientes, 1 servidor)
+
+node "PC / Servidor del banco" as SRV {
+  artifact "servidor_banco.py" as S
+  artifact "banco_distribuido.py\n(replicas + coordinador 2PC)" as B
+  database "Replica Bogota" as RB
+  database "Replica Nueva York" as RNY
+  database "Replica Madrid" as RM
+  S ..> B : importa
+  B --> RB
+  B --> RNY
+  B --> RM
+}
+
+node "Cliente 1: Cajero Nueva York" as C1 {
+  artifact "cajero.py \"Nueva York\"\n(Tkinter)" as A1
+}
+node "Cliente 2: Cajero Madrid" as C2 {
+  artifact "cajero.py Madrid\n(Tkinter)" as A2
+}
+
+A1 -down-> S : TCP 5000\nJSON por linea
+A2 -down-> S : TCP 5000\nJSON por linea
+@enduml

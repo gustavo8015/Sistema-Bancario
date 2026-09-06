@@ -1,0 +1,33 @@
+@startuml componentes
+skinparam shadowing false
+skinparam defaultFontName Times New Roman
+skinparam componentStyle rectangle
+title Diagrama de componentes - Sistema bancario distribuido
+
+package "Canal de atencion" {
+  [Cajero automatico\n(cliente)] as ATM
+}
+
+package "Nucleo transaccional" {
+  [Coordinador de\ntransacciones (2PC)] as COORD
+  [Replicador\nasincrono] as REP
+  [Bitacora /\nAuditoria] as LOG
+}
+
+package "Capa de datos replicada" {
+  database "Replica\nBogota" as RB
+  database "Replica\nNueva York" as RNY
+  database "Replica\nMadrid" as RM
+}
+
+ATM -down-> COORD : IRetiro
+note right of COORD : I2PC = preparar / confirmar / abortar\nIReplica = aplicar actualizacion propagada
+COORD -down-> RB : I2PC
+COORD -down-> RNY : I2PC
+COORD -down-> RM : I2PC
+REP -down-> RB : IReplica
+REP -down-> RNY : IReplica
+REP -down-> RM : IReplica
+COORD -right-> LOG : registra estado de cada TX
+ATM ..> RM : consulta local de saldo
+@enduml

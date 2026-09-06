@@ -1,0 +1,67 @@
+@startuml clases
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Times New Roman
+title Diagrama de clases - Emulador bancario distribuido
+
+class Cuenta {
+  - numero: str
+  - titular: str
+  - saldo: float
+  - version: int
+  + copia(): Cuenta
+}
+
+class Transaccion {
+  - id_tx: str
+  - cuenta: str
+  - monto: float
+  - tipo: str
+  - origen: str
+  - estado: str
+}
+
+class NodoReplica {
+  - nombre: str
+  - ciudad: str
+  - latencia_ms: int
+  - disponible: bool
+  - cuentas: dict
+  - bloqueos: dict
+  - cola_replicacion: list
+  + consultar_saldo(numero): float
+  + preparar(tx): bool
+  + confirmar(tx)
+  + abortar(tx)
+  + escribir_local(tx): bool
+  + aplicar_replica(tx, desde)
+}
+
+class CoordinadorTransacciones {
+  - replicas: list
+  - tiempo_espera: float
+  + ejecutar(tx): Transaccion
+}
+
+class ReplicadorAsincrono {
+  - replicas: list
+  - retraso: float
+  + propagar()
+}
+
+class Cajero {
+  - nombre: str
+  - replica: NodoReplica
+  - coordinador: CoordinadorTransacciones
+  + retirar_fuerte(cuenta, monto): Transaccion
+  + retirar_eventual(cuenta, monto): Transaccion
+}
+
+NodoReplica "1" o-- "*" Cuenta : almacena
+NodoReplica "1" o-- "*" Transaccion : cola_replicacion
+CoordinadorTransacciones "1" --> "3" NodoReplica : coordina 2PC
+ReplicadorAsincrono "1" --> "3" NodoReplica : propaga escrituras
+Cajero --> "1" NodoReplica : replica local
+Cajero --> "0..1" CoordinadorTransacciones : usa
+Cajero ..> Transaccion : crea
+@enduml

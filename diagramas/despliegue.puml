@@ -1,0 +1,31 @@
+@startuml despliegue
+skinparam shadowing false
+skinparam defaultFontName Times New Roman
+title Diagrama de despliegue - Sistema bancario distribuido
+
+node "Centro de datos Bogota" as CB {
+  node "Servidor de aplicaciones" as SB {
+    artifact "banco_distribuido.py\n(Coordinador 2PC)" as APP
+  }
+  database "Replica Bogota\n(cuentas + bloqueos)" as DBB
+}
+
+node "Centro de datos Nueva York" as CNY {
+  database "Replica Nueva York" as DBNY
+}
+
+node "Centro de datos Madrid" as CMD {
+  database "Replica Madrid" as DBM
+}
+
+node "Cajero Nueva York\n(terminal ATM)" as ATMNY
+node "Cajero Madrid\n(terminal ATM)" as ATMMD
+
+ATMNY -down-> APP : red bancaria\n(TCP/TLS) ~60 ms
+ATMMD -down-> APP : red bancaria\n(TCP/TLS) ~90 ms
+APP --> DBB : 2PC ~5 ms
+APP --> DBNY : 2PC ~60 ms
+APP --> DBM : 2PC ~90 ms
+DBB <..> DBNY : replicacion
+DBB <..> DBM : replicacion
+@enduml

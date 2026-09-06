@@ -1,0 +1,43 @@
+@startuml secuencia
+skinparam shadowing false
+skinparam defaultFontName Times New Roman
+title Secuencia - Retiro simultaneo con consistencia fuerte (2 clientes, 1 servidor)
+
+actor "Cliente en\nNueva York" as U1
+participant "cajero.py\n(Nueva York)" as C1
+participant "cajero.py\n(Madrid)" as C2
+actor "Pareja en\nMadrid" as U2
+box "servidor_banco.py" #F4F4F4
+participant "Servidor TCP\n(JSON)" as S
+participant "Coordinador\n2PC" as CO
+database "Replica\nBogota" as RB
+database "Replica\nNueva York" as RNY
+database "Replica\nMadrid" as RM
+end box
+
+U1 -> C1 : RETIRAR 100
+U2 -> C2 : RETIRAR 100
+C1 -> S : {"op":"RETIRAR","ciudad":"Nueva York",\n"monto":100,"modo":"fuerte","sincronizar":true}
+C2 -> S : {"op":"RETIRAR","ciudad":"Madrid",\n"monto":100,"modo":"fuerte","sincronizar":true}
+note over S : Barrera: cuando llegan los dos,\nse disparan en el mismo instante
+S -> CO : ejecutar(TX-001)
+S -> CO : ejecutar(TX-002)
+note over CO : cerrojo de orden:\nTX-001 primero
+CO -> RB : preparar(TX-001)
+RB --> CO : SI (bloquea 1001)
+CO -> RNY : preparar(TX-001)
+RNY --> CO : SI (bloquea 1001)
+CO -> RM : preparar(TX-001)
+RM --> CO : SI (bloquea 1001)
+CO -> RB : confirmar(TX-001)
+CO -> RNY : confirmar(TX-001)
+CO -> RM : confirmar(TX-001)
+CO --> S : TX-001 APROBADA
+S --> C1 : {"estado":"APROBADA",\n"mensaje":"Entregando 100"}
+C1 --> U1 : entrega efectivo
+CO -> RB : preparar(TX-002)
+RB --> CO : NO (saldo 0 < 100)
+CO --> S : TX-002 RECHAZADA
+S --> C2 : {"estado":"RECHAZADA",\n"mensaje":"fondos insuficientes"}
+C2 --> U2 : transaccion rechazada
+@enduml
